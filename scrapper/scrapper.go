@@ -1,16 +1,19 @@
 package scrapper
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
 )
 
-type extrectedPost struct {
+type extractedPost struct {
 	id     string
 	title  string
 	author string
@@ -19,13 +22,70 @@ type extrectedPost struct {
 	url    string
 }
 
-const baseURL = "http://www.bopyung.hs.kr/main.php"
+type ExtractMenu struct {
+	Menu []MealMenu `json:"menu"`
+}
+
+type MealMenu struct {
+	Date   string   `json:"date"`
+	Lunch  []string `json:"lunch"`
+	Dinner []string `json:"dinner"`
+}
+
+const baseURL = "http://www.bopyung.hs.kr/"
 
 // ScrapeNotice scrapes notice page
-func ScrapeNotices(page int) {
+func ScrapeNotices(page int) []extractedPost {
 	fmt.Println("Scraping Notices")
+	return extractPostList("100100", "15", page)
+}
 
-	query := "?menugrp=100100&master=bbs&act=list&master_sid=15&Page=" + strconv.Itoa(page)
+// ScrapeNews scrapes news page
+func ScrapeNews() []extractedPost {
+	fmt.Println("Scraping News")
+	return extractPostList("100200", "16", 1)
+}
+
+// ScrapeEvents scrapes events page
+func ScrapeEvents() []extractedPost {
+	fmt.Println("Scraping Events")
+	return extractPostList("100300", "67", 1)
+}
+
+// ScrapeMeal gets meal
+func ScrapeMeal(date time.Time) MealMenu {
+	// [ToDo]
+	// 그날 급식이 없을 시, 에러를 보내거나 해서 일단 없다는 것을 알려야함
+	year, month, day := date.Date()
+	fmt.Println("Scraping Today's meal")
+
+	url := fmt.Sprintf("https://schoolmenukr.ml/api/high/J100005836?allergy=hidden&year=%d&month=%d&date=%d", year, month, day)
+	res, err := http.Get(url)
+	checkErr(err)
+	checkCode(res)
+
+	defer res.Body.Close()
+
+	body, err := ioutil.ReadAll(res.Body)
+
+	var resJson ExtractMenu
+	err = json.Unmarshal(body, &resJson)
+	checkErr(err)
+
+	var meal MealMenu
+	if len(resJson.Menu) == 0 {
+		meal = resJson.Menu[0]
+	}
+	fmt.Println(meal)
+
+	return meal
+}
+
+func extractPostList(menugrp string, masterSid string, page int) []extractedPost {
+	// [ToDo]
+	// 인자값으로 검색옵션, 검색문자 등도 포함해서 걍 이미 있는 3개까지 합쳐서 map으로
+	var posts []extractedPost
+	query := "main.php?menugrp=" + menugrp + "&master=bbs&act=list&master_sid=" + masterSid + "&Page=" + strconv.Itoa(page)
 	res, err := http.Get(baseURL + query)
 	checkErr(err)
 	checkCode(res)
@@ -36,21 +96,16 @@ func ScrapeNotices(page int) {
 	checkErr(err)
 
 	table := doc.Find(".bbsContent tbody")
-	table.Find("tr").Each(extractPost)
+	table.Find("tr").Each(func(i int, p *goquery.Selection) {
+		post := extractPost(p)
+		posts = append(posts, post)
+	})
+
+	return posts
 }
 
-// ScrapeNews scrapes news page
-func ScrapeNews() {
-	fmt.Println("Scraping News")
-}
-
-// ScrapeEvents scrapes events page
-func ScrapeEvents() {
-	fmt.Println("Scraping Events")
-}
-
-func extractPost(i int, post *goquery.Selection) {
-	var id, title, author, date string
+func extractPost(post *goquery.Selection) extractedPost {
+	var id, title, author, date, url string
 	var views int
 	post.Find("td").Each(func(i int, s *goquery.Selection) {
 		switch i {
@@ -61,6 +116,8 @@ func extractPost(i int, post *goquery.Selection) {
 			// image/pdf/hwp/xlsx
 		case 2:
 			title = strings.TrimSpace(s.Text())
+			url, _ = s.Find("a").Attr("href")
+			url = baseURL + url
 		case 3:
 			author = s.Text()
 		case 4:
@@ -70,6 +127,14 @@ func extractPost(i int, post *goquery.Selection) {
 		}
 	})
 	fmt.Println(id, title, author, date, views)
+	fmt.Println(url)
+	return extractedPost{
+		id:     id,
+		title:  title,
+		author: author,
+		date:   date,
+		views:  views,
+	}
 }
 
 func checkErr(err error) {

@@ -2,10 +2,16 @@ package main
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo"
 	"github.com/seongmin8452/school/bopyung-hs/scrapper"
 )
+
+type test struct {
+	id   string
+	text string
+}
 
 func homePage(c echo.Context) error {
 	return c.String(http.StatusOK, "Hello, world!")
@@ -20,4 +26,5 @@ func main() {
 	scrapper.ScrapeNotices(1)
 	scrapper.ScrapeNews()
 	scrapper.ScrapeEvents()
+	scrapper.ScrapeMeal(time.Now())
 }

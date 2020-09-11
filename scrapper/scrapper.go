@@ -13,14 +13,17 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-type extractedPost struct {
-	id     string
-	title  string
-	author string
-	date   string
-	views  int
-	url    string
+type ExtractedPost struct {
+	Id     string `json:"id"`
+	Title  string `json:"title"`
+	Author string `json:"author"`
+	Date   string `json:"date"`
+	Views  int    `json:"views"`
+	Url    string `json:"url"`
 }
+
+// [ToDo]
+// 이거 여기가 아니라 다른데(modules라던가)에서 선언되야 하는게...?
 
 type ExtractMenu struct {
 	Menu []MealMenu `json:"menu"`
@@ -35,19 +38,19 @@ type MealMenu struct {
 const baseURL = "http://www.bopyung.hs.kr/"
 
 // ScrapeNotice scrapes notice page
-func ScrapeNotices(page int) []extractedPost {
+func ScrapeNotices(page int) []ExtractedPost {
 	fmt.Println("Scraping Notices")
 	return extractPostList("100100", "15", page)
 }
 
 // ScrapeNews scrapes news page
-func ScrapeNews() []extractedPost {
+func ScrapeNews() []ExtractedPost {
 	fmt.Println("Scraping News")
 	return extractPostList("100200", "16", 1)
 }
 
 // ScrapeEvents scrapes events page
-func ScrapeEvents() []extractedPost {
+func ScrapeEvents() []ExtractedPost {
 	fmt.Println("Scraping Events")
 	return extractPostList("100300", "67", 1)
 }
@@ -81,10 +84,10 @@ func ScrapeMeal(date time.Time) MealMenu {
 	return meal
 }
 
-func extractPostList(menugrp string, masterSid string, page int) []extractedPost {
+func extractPostList(menugrp string, masterSid string, page int) []ExtractedPost {
 	// [ToDo]
 	// 인자값으로 검색옵션, 검색문자 등도 포함해서 걍 이미 있는 3개까지 합쳐서 map으로
-	var posts []extractedPost
+	var posts []ExtractedPost
 	query := "main.php?menugrp=" + menugrp + "&master=bbs&act=list&master_sid=" + masterSid + "&Page=" + strconv.Itoa(page)
 	res, err := http.Get(baseURL + query)
 	checkErr(err)
@@ -104,7 +107,7 @@ func extractPostList(menugrp string, masterSid string, page int) []extractedPost
 	return posts
 }
 
-func extractPost(post *goquery.Selection) extractedPost {
+func extractPost(post *goquery.Selection) ExtractedPost {
 	var id, title, author, date, url string
 	var views int
 	post.Find("td").Each(func(i int, s *goquery.Selection) {
@@ -128,12 +131,13 @@ func extractPost(post *goquery.Selection) extractedPost {
 	})
 	fmt.Println(id, title, author, date, views)
 	fmt.Println(url)
-	return extractedPost{
-		id:     id,
-		title:  title,
-		author: author,
-		date:   date,
-		views:  views,
+	return ExtractedPost{
+		Id:     id,
+		Title:  title,
+		Author: author,
+		Date:   date,
+		Views:  views,
+		Url:    url,
 	}
 }
 

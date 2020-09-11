@@ -13,18 +13,31 @@ type test struct {
 	text string
 }
 
+type tmp struct {
+	Notices []scrapper.ExtractedPost `json:"notices"`
+	News    []scrapper.ExtractedPost `json:"news"`
+	Events  []scrapper.ExtractedPost `json:"events"`
+	Meal    scrapper.MealMenu        `json:"meal"`
+}
+
 func homePage(c echo.Context) error {
-	return c.String(http.StatusOK, "Hello, world!")
+	notices := scrapper.ScrapeNotices(1)
+	news := scrapper.ScrapeNews()
+	events := scrapper.ScrapeEvents()
+	meal := scrapper.ScrapeMeal(time.Now())
+	data := &tmp{
+		Notices: notices,
+		News:    news,
+		Events:  events,
+		Meal:    meal,
+	}
+	return c.JSON(http.StatusOK, data)
 }
 
 func main() {
-	//e := echo.New()
+	e := echo.New()
 
-	//e.GET("/", homePage)
+	e.GET("/", homePage)
 
-	//e.Logger.Fatal(e.Start(":8080"))
-	scrapper.ScrapeNotices(1)
-	scrapper.ScrapeNews()
-	scrapper.ScrapeEvents()
-	scrapper.ScrapeMeal(time.Now())
+	e.Logger.Fatal(e.Start(":8080"))
 }

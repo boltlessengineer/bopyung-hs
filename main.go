@@ -35,9 +35,12 @@ func homePage(c echo.Context) error {
 }
 
 func main() {
-	e := echo.New()
+	//e := echo.New()
 
-	e.GET("/", homePage)
+	//e.GET("/", homePage)
 
-	e.Logger.Fatal(e.Start(":8080"))
+	//e.Logger.Fatal(e.Start(":8080"))
+
+	//------------------------------
+	//db 테스트용 models 관련 함수들
 }
